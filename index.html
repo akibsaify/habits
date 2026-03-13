@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="apple-mobile-web-app-title" content="HabitStack">
+<title>HabitStack</title>
+<link rel="manifest" href="data:application/manifest+json,{%22name%22:%22HabitStack%22,%22short_name%22:%22HabitStack%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%220a0a0b%22,%22theme_color%22:%220a0a0b%22,%22icons%22:[{%22src%22:%22data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230a0a0b' width='100' height='100' rx='20'/><text x='50' y='62' text-anchor='middle' font-size='50'>⚡</text></svg>%22,%22sizes%22:%22any%22,%22type%22:%22image/svg+xml%22}]}">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --card: #131316;
+    --card-border: #1e1e24;
+    --text: #e4e4e7;
+    --text-dim: #71717a;
+    --text-muted: #3f3f46;
+    --accent: #34d399;
+    --accent-dim: rgba(52,211,153,0.1);
+    --accent-glow: rgba(52,211,153,0.15);
+    --orange: #fb923c;
+    --orange-dim: rgba(251,146,60,0.1);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.1);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.1);
+    --rose: #fb7185;
+    --rose-dim: rgba(251,113,133,0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* Top bar */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,11,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .topbar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .app-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .app-title span { color: var(--accent); }
+  .streak-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(52,211,153,0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .streak-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+  }
+
+  /* Day progress */
+  .day-progress {
+    margin-top: 14px;
+  }
+  .day-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .day-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+  .day-pct {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .day-track {
+    height: 4px;
+    background: var(--card);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .day-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #6ee7b7);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* Main */
+  .main { padding: 16px 16px 100px; }
+
+  /* Now indicator */
+  .now-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(52,211,153,0.15);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .now-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.4); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(52,211,153,0); }
+  }
+
+  /* Time blocks */
+  .block {
+    margin-bottom: 20px;
+    opacity: 0.45;
+    transition: opacity 0.3s;
+  }
+  .block.active, .block.future { opacity: 1; }
+  .block.completed { opacity: 0.55; }
+
+  .block-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+  .block-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .block-meta {
+    flex: 1;
+  }
+  .block-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .block-time {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 1px;
+  }
+  .block-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .block-card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .habit {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer;
+    transition: background 0.15s;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .habit:last-child { border-bottom: none; }
+  .habit:active { background: rgba(255,255,255,0.03); }
+
+  .habit-check {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 7px;
+    border: 2px solid var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+    transition: all 0.25s;
+  }
+  .habit.done .habit-check {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .habit-tick {
+    opacity: 0;
+    font-size: 12px;
+    color: var(--bg);
+    font-weight: 700;
+    transition: opacity 0.2s;
+  }
+  .habit.done .habit-tick { opacity: 1; }
+
+  .habit-info { flex: 1; }
+  .habit-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.35;
+    transition: all 0.2s;
+  }
+  .habit.done .habit-title {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+  .habit-why {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    line-height: 1.35;
+    transition: all 0.2s;
+  }
+  .habit.done .habit-why { color: var(--text-muted); }
+  .habit-dur {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    align-self: center;
+  }
+
+  /* Sections colored */
+  .block[data-color="green"] .block-icon { background: var(--accent-dim); }
+  .block[data-color="orange"] .block-icon { background: var(--orange-dim); }
+  .block[data-color="blue"] .block-icon { background: var(--blue-dim); }
+  .block[data-color="purple"] .block-icon { background: var(--purple-dim); }
+  .block[data-color="rose"] .block-icon { background: var(--rose-dim); }
+  .block[data-color="green"] .block-name { color: var(--accent); }
+  .block[data-color="orange"] .block-name { color: var(--orange); }
+  .block[data-color="blue"] .block-name { color: var(--blue); }
+  .block[data-color="purple"] .block-name { color: var(--purple); }
+  .block[data-color="rose"] .block-name { color: var(--rose); }
+
+  /* Bottom bar */
+  .bottombar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10,10,11,0.9);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--card-border);
+    padding: 12px 20px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .bottom-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.15s;
+  }
+  .bottom-btn:active { background: var(--card); }
+  .complete-btn {
+    background: var(--accent-dim);
+    border: 1px solid rgba(52,211,153,0.2);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 10px;
+  }
+  .complete-btn:active { background: rgba(52,211,153,0.2); }
+  .complete-btn:disabled {
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* Celebration overlay */
+  .celebration {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,11,0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .celebration.show { opacity: 1; pointer-events: all; }
+  .celeb-emoji { font-size: 56px; margin-bottom: 16px; }
+  .celeb-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .celeb-sub {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 28px;
+  }
+  .celeb-btn {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 14px 36px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-row">
+    <div class="app-title">habit<span>stack</span></div>
+    <div class="streak-badge">
+      🔥 <span class="streak-num" id="streakNum">0</span> day streak
+    </div>
+  </div>
+  <div class="day-progress">
+    <div class="day-progress-header">
+      <span class="day-label" id="dayLabel"></span>
+      <span class="day-pct" id="dayPct">0%</span>
+    </div>
+    <div class="day-track">
+      <div class="day-fill" id="dayFill"></div>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="main"></div>
+
+<div class="bottombar">
+  <button class="bottom-btn" onclick="resetToday()">Reset today</button>
+  <button class="complete-btn" id="completeBtn" onclick="completeDay()" disabled>Day complete ✓</button>
+</div>
+
+<div class="celebration" id="celebration">
+  <div class="celeb-emoji">🏆</div>
+  <div class="celeb-title">Day Locked In</div>
+  <div class="celeb-sub" id="celebSub">Streak: 1 day</div>
+  <button class="celeb-btn" onclick="closeCeleb()">Done</button>
+</div>
+
+<script>
+// ── DATA: Akib's daily architecture ──
+const blocks = [
+  {
+    id: 'morning',
+    name: 'Morning Launch',
+    icon: '☀️',
+    color: 'green',
+    startHour: 7, endHour: 9.5,
+    time: '7:00 – 9:30 AM',
+    habits: [
+      { id: 'm1', title: 'Full glass of water', why: 'Hydrate before anything else', dur: '1m' },
+      { id: 'm2', title: 'Make the bed', why: 'First win — sets momentum', dur: '2m' },
+      { id: 'm3', title: 'Get dressed properly', why: 'Signal to your brain: I\'m on', dur: '5m' },
+      { id: 'm4', title: 'Write today\'s top 3 priorities', why: 'Removes "what should I do" paralysis', dur: '3m' },
+    ]
+  },
+  {
+    id: 'commute_am',
+    name: 'Morning Commute',
+    icon: '🚕',
+    color: 'orange',
+    startHour: 9.5, endHour: 11.5,
+    time: '9:30 – 11:30 AM',
+    habits: [
+      { id: 'c1', title: 'Shadow English podcast (30 min)', why: 'Repeat aloud what you hear — fluency builder', dur: '30m' },
+      { id: 'c2', title: 'Chess puzzles on Lichess (20 min)', why: 'Pattern recognition + focus training', dur: '20m' },
+      { id: 'c3', title: 'Review 1 investing concept or portfolio', why: 'Compound financial knowledge daily', dur: '15m' },
+    ]
+  },
+  {
+    id: 'work',
+    name: 'Work Block',
+    icon: '💼',
+    color: 'blue',
+    startHour: 11.5, endHour: 20.5,
+    time: '11:30 AM – 8:30 PM',
+    habits: [
+      { id: 'w1', title: 'Internal narration in English', why: 'Think in English during tasks — zero extra time', dur: 'ongoing' },
+      { id: 'w2', title: '5-min walk every 2 hours', why: 'Steps + energy reset for digestion', dur: '5m × 4' },
+      { id: 'w3', title: 'Log 1 thing you learned at work', why: 'Turns every day into visible progress', dur: '2m' },
+    ]
+  },
+  {
+    id: 'commute_pm',
+    name: 'Evening Commute',
+    icon: '🌆',
+    color: 'purple',
+    startHour: 20.5, endHour: 22.5,
+    time: '8:30 – 10:30 PM',
+    habits: [
+      { id: 'e1', title: 'Listen to 1 skill-building video/podcast', why: 'Coding, automation, or AML trends', dur: '25m' },
+      { id: 'e2', title: 'Plan tomorrow\'s Instagram reel idea', why: 'Capture 1 idea while mind is fresh', dur: '5m' },
+      { id: 'e3', title: 'Internal day review (mentally)', why: 'What worked? What didn\'t? No journal needed', dur: '5m' },
+    ]
+  },
+  {
+    id: 'night',
+    name: 'Night Shutdown',
+    icon: '🌙',
+    color: 'rose',
+    startHour: 22.5, endHour: 24,
+    time: '10:30 PM – Sleep',
+    habits: [
+      { id: 'n1', title: 'Write 1 win from today', why: 'Proof that you showed up', dur: '1m' },
+      { id: 'n2', title: 'Set tomorrow\'s clothes out', why: 'Kill morning decision fatigue', dur: '2m' },
+      { id: 'n3', title: 'Phone on charger, away from bed', why: 'Breaks the scroll-before-sleep loop', dur: '1m' },
+    ]
+  }
+];
+
+// ── STATE ──
+function todayKey() {
+  const d = new Date();
+  return `hs-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+function getState() {
+  try { return JSON.parse(localStorage.getItem(todayKey()) || '{}'); } catch { return {}; }
+}
+function saveState(s) { localStorage.setItem(todayKey(), JSON.stringify(s)); }
+
+function getStreak() {
+  try { return JSON.parse(localStorage.getItem('hs-streak') || '{"count":0,"lastDate":""}'); }
+  catch { return { count: 0, lastDate: '' }; }
+}
+function saveStreak(s) { localStorage.setItem('hs-streak', JSON.stringify(s)); }
+
+// ── CURRENT BLOCK ──
+function getCurrentHour() {
+  const now = new Date();
+  return now.getHours() + now.getMinutes() / 60;
+}
+
+function getActiveBlockId() {
+  const h = getCurrentHour();
+  for (const b of blocks) {
+    if (h >= b.startHour && h < b.endHour) return b.id;
+  }
+  return blocks[blocks.length - 1].id;
+}
+
+function getBlockStatus(block) {
+  const h = getCurrentHour();
+  const state = getState();
+  const allDone = block.habits.every(hab => state[hab.id]);
+  if (allDone) return 'completed';
+  if (h >= block.startHour && h < block.endHour) return 'active';
+  if (h < block.startHour) return 'future';
+  return 'past';
+}
+
+// ── RENDER ──
+function render() {
+  const state = getState();
+  const main = document.getElementById('main');
+  const totalHabits = blocks.reduce((s, b) => s + b.habits.length, 0);
+  const doneHabits = blocks.reduce((s, b) => s + b.habits.filter(h => state[h.id]).length, 0);
+  const pct = Math.round((doneHabits / totalHabits) * 100);
+
+  // Top bar
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  document.getElementById('dayLabel').textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]}`;
+  document.getElementById('dayPct').textContent = `${pct}%`;
+  document.getElementById('dayFill').style.width = `${pct}%`;
+
+  // Streak
+  const streak = getStreak();
+  document.getElementById('streakNum').textContent = streak.count;
+
+  // Complete button
+  const btn = document.getElementById('completeBtn');
+  btn.disabled = doneHabits < totalHabits;
+
+  // Active block
+  const activeId = getActiveBlockId();
+
+  // Render blocks
+  let html = '';
+
+  // Now banner
+  const activeBlock = blocks.find(b => b.id === activeId);
+  if (activeBlock) {
+    html += `<div class="now-banner"><div class="now-dot"></div>Now: ${activeBlock.name} block</div>`;
+  }
+
+  blocks.forEach(block => {
+    const status = getBlockStatus(block);
+    const blockDone = block.habits.filter(h => state[h.id]).length;
+
+    html += `<div class="block ${status}" data-color="${block.color}">`;
+    html += `<div class="block-header">`;
+    html += `<div class="block-icon">${block.icon}</div>`;
+    html += `<div class="block-meta">`;
+    html += `<div class="block-name">${block.name}</div>`;
+    html += `<div class="block-time">${block.time}</div>`;
+    html += `</div>`;
+    html += `<div class="block-count">${blockDone}/${block.habits.length}</div>`;
+    html += `</div>`;
+
+    html += `<div class="block-card">`;
+    block.habits.forEach(hab => {
+      const done = state[hab.id] ? 'done' : '';
+      html += `<div class="habit ${done}" onclick="toggleHabit('${hab.id}')">`;
+      html += `<div class="habit-check"><span class="habit-tick">✓</span></div>`;
+      html += `<div class="habit-info">`;
+      html += `<div class="habit-title">${hab.title}</div>`;
+      html += `<div class="habit-why">${hab.why}</div>`;
+      html += `</div>`;
+      html += `<div class="habit-dur">${hab.dur}</div>`;
+      html += `</div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  main.innerHTML = html;
+
+  // Scroll to active block on first load
+  if (!window._scrolled) {
+    window._scrolled = true;
+    setTimeout(() => {
+      const activeEl = document.querySelector('.block.active');
+      if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }
+}
+
+function toggleHabit(id) {
+  const state = getState();
+  state[id] = !state[id];
+  saveState(state);
+  render();
+}
+
+function resetToday() {
+  if (confirm('Reset all habits for today?')) {
+    localStorage.removeItem(todayKey());
+    render();
+  }
+}
+
+function completeDay() {
+  const streak = getStreak();
+  const today = todayKey();
+  const yesterday = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return `hs-${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  })();
+
+  if (streak.lastDate === today) return; // already completed
+  if (streak.lastDate === yesterday) {
+    streak.count++;
+  } else if (streak.lastDate !== today) {
+    streak.count = 1;
+  }
+  streak.lastDate = today;
+  saveStreak(streak);
+
+  document.getElementById('celebSub').textContent = `Streak: ${streak.count} day${streak.count > 1 ? 's' : ''}`;
+  document.getElementById('celebration').classList.add('show');
+  render();
+}
+
+function closeCeleb() {
+  document.getElementById('celebration').classList.remove('show');
+}
+
+// Init
+render();
+// Auto-refresh every minute to update "now" indicator
+setInterval(render, 60000);
+</script>
+</body>
+</html>
