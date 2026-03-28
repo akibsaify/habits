@@ -397,7 +397,12 @@
 <div class="main" id="main"></div>
 
 <div class="bottombar">
-  <button class="bottom-btn" onclick="resetToday()">Reset today</button>
+  <div style="display:flex;gap:4px;">
+    <button class="bottom-btn" onclick="resetToday()">Reset today</button>
+    <button class="bottom-btn" onclick="exportData()" title="Export data">📤</button>
+    <button class="bottom-btn" onclick="document.getElementById('importFile').click()" title="Import data">📥</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
   <button class="complete-btn" id="completeBtn" onclick="completeDay()" disabled>Day complete ✓</button>
 </div>
 
@@ -638,10 +643,53 @@ function closeCeleb() {
   document.getElementById('celebration').classList.remove('show');
 }
 
+// ── EXPORT / IMPORT ──
+function exportData() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('hs-')) {
+      data[key] = localStorage.getItem(key);
+    }
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `habitstack-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      for (const [key, val] of Object.entries(data)) {
+        if (key.startsWith('hs-')) {
+          localStorage.setItem(key, val);
+        }
+      }
+      render();
+      alert('Data imported successfully.');
+    } catch {
+      alert('Invalid file. Please select a valid HabitStack backup.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
 // Init
 render();
 // Auto-refresh every minute to update "now" indicator
 setInterval(render, 60000);
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js');
+}
 </script>
 </body>
 </html>
